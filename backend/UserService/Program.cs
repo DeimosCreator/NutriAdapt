@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using UserService.Options;
 
 DotNetEnv.Env.Load();
 
@@ -12,6 +13,25 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 
 builder.Services.AddHttpClient();
+
+builder.Services.Configure<KeycloakSettings>(options =>
+{
+    options.Url = Environment.GetEnvironmentVariable("KEYCLOAK_URL")!;
+    options.Realm = Environment.GetEnvironmentVariable("KEYCLOAK_REALM")!;
+    options.AdminClientId = Environment.GetEnvironmentVariable("KEYCLOAK_ADMIN_CLIENT_ID")!;
+    options.AdminClientSecret = Environment.GetEnvironmentVariable("KEYCLOAK_ADMIN_CLIENT_SECRET")!;
+    options.LoginClientId = Environment.GetEnvironmentVariable("KEYCLOAK_LOGIN_CLIENT_ID")!;
+});
+
+builder.Services.AddScoped<KeycloakClient>(sp =>
+{
+    var settings = sp.GetRequiredService<IOptions<KeycloakSettings>>().Value;
+
+    return new KeycloakClient(
+        settings.Url,
+        settings.AdminClientSecret,
+        new KeycloakOptions(adminClientId: settings.AdminClientId));
+});
 
 builder.Services.AddCors(options =>
 {
